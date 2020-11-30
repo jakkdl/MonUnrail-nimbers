@@ -10,21 +10,6 @@ optimal_moves = {
     tuple(): []
 }
 
-class Point:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __lt__(self, other):
-        return self.x < other.x or self.y < self.y
-
-    def __add__(self, other):
-        return point(self.x+other.x, self.y+other.y)
-
-    def __mul__(self, scalar):
-        return point(self.x*scalar, self.y*scalar)
-
-
 def complex_compare(x):
     return x.real,x.imag
 
@@ -32,8 +17,10 @@ def transform(rail):
     def smaller(x, y):
         for a,b in zip(x, y):
             if complex_compare(a) < complex_compare(b):
+            #if a.real < b.real or (a.real == b.real and a.imag < b.imag):
                 return True
             if complex_compare(a) > complex_compare(b):
+            #if a.real > b.real or (a.real == b.real and a.imag > b.imag):
                 return False
         return False
 
@@ -47,7 +34,7 @@ def transform(rail):
         lambda x: complex(-x.imag, -x.real),
     )
 
-    transformed_rails = [[]*7]
+    transformed_rails = [[],[],[],[],[],[],[]]
     for point in rail:
         for transformed_rail, transform_f in zip(transformed_rails,
                                                  transforms):
@@ -83,6 +70,8 @@ def smallest_nimber_not_in(nimbers):
         i += 1
     return i
 
+
+#TODO optimize
 def split(rail):
     split_rails = []
     remaining = set(rail)
@@ -109,6 +98,14 @@ def split(rail):
     res = [tuple(sorted(split, key=complex_compare)) for split in split_rails]
 
     return res
+
+mods = (
+    (),
+    (complex(0,1),),
+    (complex(0,1),complex(0,2),),
+    (complex(1,0),),
+    (complex(1,0),complex(2,0),),
+)
 
 
 # removal
@@ -146,40 +143,71 @@ def nimber(rail):
             if complex(row,col) not in rail:
                 continue
 
-            for mod in (complex(0,1), complex(1,0)):
-                for num in (1,2,3):
-                    # ugly optimization to not double check single removal
-                    if mod == complex(1,0) and num==1:
-                        continue
+            index = rail.index(complex(row,col))
+            curr_rail = rail[:index] + rail[index+1:]
 
-                    remove = [complex(row,col) + mod*i for i in range(num)]
-                    valid = True
+            global_nimbers.add(do_stuff(rail, curr_rail, complex(row,col)))
 
-                    for r in remove:
-                        if r not in rail:
-                            valid = False
-                            break
-                    if not valid:
-                        break
+            if complex(row+1, col) in curr_rail:
+                index = curr_rail.index(complex(row+1,col))
+                row_rail = curr_rail[:index] + curr_rail[index+1:]
 
-                    curr_rail = rail
-                    for r in remove:
-                        index = curr_rail.index(r)
-                        curr_rail = curr_rail[:index] + curr_rail[index+1:]
+                global_nimbers.add(do_stuff(rail, row_rail,
+                                            (complex(row,col),
+                                             complex(row+1,col))))
+
+                if complex(row+2, col) in row_rail:
+                    index = row_rail.index(complex(row+2,col))
+                    row_rail = row_rail[:index] + row_rail[index+1:]
+
+                    global_nimbers.add(do_stuff(rail, row_rail,
+                                                (complex(row,col),
+                                                 complex(row+1,col),
+                                                 complex(row+2,col))))
+            if complex(row, col+1) in curr_rail:
+                index = curr_rail.index(complex(row,col+1))
+                curr_rail = curr_rail[:index] + curr_rail[index+1:]
+
+                global_nimbers.add(
+                    do_stuff(rail, curr_rail,
+                             (complex(row,col),
+                              complex(row,col+1))))
+
+                if complex(row, col+2) in curr_rail:
+                    index = curr_rail.index(complex(row,col+2))
+                    curr_rail = curr_rail[:index] + curr_rail[index+1:]
+
+                    global_nimbers.add(
+                        do_stuff(rail, curr_rail,
+                                 (complex(row,col),
+                                  complex(row,col+2),
+                                  complex(row,col+2))))
 
 
 
-                    split_rails = split(curr_rail)
+            #for mod in mods:
 
-                    local_nimber = 0
-                    for split_rail in split_rails:
-                        n = nimber(split_rail)
-                        local_nimber ^= n
+            #    remove = [complex(row,col) + m for m in mod]
+            #    valid = True
 
-                    if local_nimber == 0 and rail not in optimal_moves:
-                        optimal_moves[rail] = remove
+            #    for r in remove:
+            #        if r not in rail:
+            #            valid = False
+            #            break
+            #    if not valid:
+            #        continue
 
-                    global_nimbers.add(local_nimber)
+            #    curr_rail = list(rail)
+            #    curr_rail.remove(complex(row,col))
+
+            #    for r in remove:
+            #        index = curr_rail.index(r)
+            #        curr_rail = curr_rail[:index] + curr_rail[index+1:]
+
+            #    do_stuff(rail, curr_rail, remove)
+
+
+
 
 
     res = smallest_nimber_not_in(global_nimbers)
@@ -190,6 +218,16 @@ def nimber(rail):
     return res
 
 
+def do_stuff(rail, curr_rail, remove):
+    split_rails = split(curr_rail)
+
+    local_nimber = 0
+    for split_rail in split_rails:
+        n = nimber(split_rail)
+        local_nimber ^= n
+
+    if local_nimber == 0 and rail not in optimal_moves:
+        optimal_moves[rail] = remove
 
 
 
@@ -207,7 +245,8 @@ if __name__ == '__main__':
     k = tuple(complex(x,y) for x in range(4) for y in range(4))
     print(nimber(k))
     print(len(results))
-    #print(results)
+    #import pprint
+    #pprint.pprint(results)
 
     with open('results.pickle', 'wb') as f:
         pickle.dump(results, f)
