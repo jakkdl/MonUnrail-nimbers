@@ -28,48 +28,6 @@ class Point:
 def complex_compare(x):
     return x.real,x.imag
 
-def transform2(rail):
-    rotations = (complex(0, 1), #quarter turn
-                 complex(-1, 0), #half turn
-                 complex(0, -1), #3/4 turn
-                )
-
-
-    def mirror(point):
-        return complex(-point.real, point.imag)
-
-    def smaller(x, y):
-        for a,b in zip(x, y):
-            if complex_compare(a) < complex_compare(b):
-                return True
-            if complex_compare(a) > complex_compare(b):
-                return False
-        return False
-
-
-    transformed_rails = [rail]
-    for rot in rotations:
-        transformed_rails.append(
-            shift_to_origo(
-                sorted((point * rot for point in rail),
-                      key=complex_compare)
-            )
-        )
-    for i in range(4):
-        transformed_rails.append(
-            shift_to_origo(
-                sorted((mirror(point) for point in transformed_rails[i]),
-                      key=complex_compare)
-            )
-        )
-
-    smallest = transformed_rails[0]
-    for t in transformed_rails[1:]:
-        if smaller(t, smallest):
-            smallest = t
-
-    return smallest
-
 def transform(rail):
     def smaller(x, y):
         for a,b in zip(x, y):
