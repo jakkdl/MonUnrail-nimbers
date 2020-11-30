@@ -2,6 +2,7 @@
 
 import os
 import pickle
+import collections
 
 results = {
     tuple(): 0
@@ -10,34 +11,21 @@ optimal_moves = {
     tuple(): []
 }
 
-class Point:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+Point = collections.namedtuple('Point', ('x', 'y'))
 
-    def __lt__(self, other):
-        return self.x < other.x or (self.x == other.x and self.y < other.y)
+def myadd(self, other):
+    return Point(self.x+other.x, self.y+other.y)
 
-    def __add__(self, other):
-        return Point(self.x+other.x, self.y+other.y)
+def mysub(self, other):
+    return Point(self.x-other.x, self.y-other.y)
 
-    def __sub__(self, other):
-        return Point(self.x-other.x, self.y-other.y)
+def mymul(self, scalar):
+    return Point(self.x*scalar, self.y*scalar)
 
-    def __mul__(self, scalar):
-        return Point(self.x*scalar, self.y*scalar)
+Point.__add__ = myadd
+Point.__sub__ = mysub
+Point.__mul__ = mymul
 
-    def __str__(self):
-        return f'({self.x}, {self.y})'
-
-    def __repr__(self):
-        return f'({self.x}, {self.y})'
-
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
-
-    def __hash__(self):
-        return tuple((self.x, self.y)).__hash__()
 
 
 def complex_compare(x):
