@@ -3,6 +3,9 @@
 import argparse
 import os
 import pickle
+from functools import cmp_to_key
+import signal
+import sys
 
 results = {
     tuple(): 0
@@ -14,17 +17,26 @@ optimal_moves = {
     tuple(): []
 }
 
+sigint = False
+
 def complex_compare(x):
     return x.real,x.imag
 
+def smaller(x, y):
+    for a,b in zip(x, y):
+        if a.real < b.real or (a.real == b.real and a.imag < b.imag):
+            return -1
+        if a.real > b.real or (a.real == b.real and a.imag > b.imag):
+            return 1
+    return 0
+
+def rail_compare(a, b):
+    if len(a) != len(b):
+        return len(a) - len(b)
+    return smaller(a, b)
+
+
 def transform(rail):
-    def smaller(x, y):
-        for a,b in zip(x, y):
-            if a.real < b.real or (a.real == b.real and a.imag < b.imag):
-                return True
-            if a.real > b.real or (a.real == b.real and a.imag > b.imag):
-                return False
-        return False
 
     transforms = (
         lambda x: complex(x.real, -x.imag),
@@ -52,7 +64,7 @@ def transform(rail):
 
     smallest = transformed_rails[0]
     for t in transformed_rails[1:]:
-        if smaller(t, smallest):
+        if smaller(t, smallest) < 0:
             smallest = t
 
     return smallest
@@ -61,67 +73,104 @@ def transform(rail):
 class Transform:
     def __init__(self, origo, prim_delta, sec_delta, prim_len, sec_len):
         self.origo = origo
-        self.prim_delta = delta
-        self.sec_delta = delta
+        self.prim_delta = prim_delta
+        self.sec_delta = sec_delta
         self.prim_len = prim_len
         self.sec_len = sec_len
 
-    def get_point(prim_steps, sec_steps):
+    def get_point(self, prim_steps, sec_steps):
+        return (self.origo
+                + self.prim_delta * prim_steps
+                + self.sec_delta * sec_steps)
+
+    def untransform(self, prim_steps, sec_steps):
         return (self.origo
                 + self.prim_delta * prim_steps
                 + self.sec_delta * sec_steps)
 
 
+
 def transform3(rail):
+    #def smaller(left, right):
+    #    for sec in range(max(left.sec_len, right.sec_len)):
+    #        for pri in range(max(left.prim_len, right.prim_len)):
+    #            left_point = left.get_point(pri, sec)
+    #            right_point = right.get_point(pri, sec)
+    #            if left_point in rail and right_point not in rail:
+    #                return True
+    #            if left_point not in rail and right_point in rail:
+    #                return False
+    #    return False
+
+    # idk I think this does the same thing as the one above... I'm tired
     def smaller(left, right):
-        for sec in range(max(left.secondary_size, left.secondary_size)):
-            for pri in range(max(right.primary_size, right.primary_size)):
-                left_point = left.get_point(pri, sec)
-                right_point = right.get_point(pri, sec)
-                if left_point in rail and right_point not in rail:
-                    return True
-                if left_point not in rail and right_point in rail:
-                    return False
+        maxdim = max(realmax, imagmax)
+        for real in range(maxdim):
+            for imag in range(maxdim):
+                if left.get_point(real, imag) in rail:
+                    if not right.get_point(real, imag) in rail:
+                        return True
+                else:
+                    if right.get_point(real, imag) in rail:
+                        return False
+        return False
+
+    def apply_transform(transform, old_prim_len):
+        ## both of these are broken
+        #return [transform.untransform(p.real, p.imag) for p in rail]
+        res = []
+        if transform.prim_len == old_prim_len:
+            for p in rail:
+                res.append(complex(
+                    abs(transform.origo.real - p.real),
+                    abs(transform.origo.imag - p.imag)))
+        else:
+            for p in rail:
+                res.append(complex(
+                    abs(transform.origo.real - p.real),
+                    abs(transform.origo.imag - p.imag)))
+        return res
+
 
     realmax = 0
     imagmax = 0
     for point in rail:
         if point.real > realmax:
-            realmax = point.real
+            realmax = int(point.real)
         if point.imag > imagmax:
-            imagmax = point.imag
+            imagmax = int(point.imag)
 
     # define the transforms, as where their new origo will be
     # and along what axis - and in what direction, their new
     # primary axis would be.
     transforms = [
-        Transform(complex(0,0),
-                  complex(1,0), complex(0,1), realmax, imagmax),
-        Transform(complex(0,0),
-                  complex(0,1), complex(1,0), imagmax, realmax),
+        Transform(complex( 0, 0),
+                  complex( 1, 0), complex( 0, 1), realmax, imagmax),
+        Transform(complex( 0, 0),
+                  complex( 0, 1), complex( 1, 0), imagmax, realmax),
 
-        Transform(complex(0,imagmax),
-                  complex(1,0), complex(0,-1), realmax, imagmax),
-        Transform(complex(0,imagmax),
-                  complex(0,-1), complex(1,0), imagmax, realmax),
+        Transform(complex( 0, imagmax),
+                  complex( 1, 0), complex( 0,-1), realmax, imagmax),
+        Transform(complex( 0, imagmax),
+                  complex( 0,-1), complex( 1, 0), imagmax, realmax),
 
         Transform(complex(realmax, 0),
-                  complex(-1,0), complex(0,1), realmax, imagmax),
+                  complex(-1, 0), complex( 0, 1), realmax, imagmax),
         Transform(complex(realmax,0),
-                  complex(0,1), complex(-1,0), imagmax, realmax),
+                  complex( 0, 1), complex(-1, 0), imagmax, realmax),
 
-        Transform(complex(realmax,imagmax),
-                  complex(-1,0), complex(0,-1), realmax, imagmax),
-        Transform(complex(realmax,imagmax),
-                  complex(0,-1), complex(-1,0), imagmax, realmax),
+        Transform(complex(realmax, imagmax),
+                  complex(-1, 0), complex( 0,-1), realmax, imagmax),
+        Transform(complex(realmax, imagmax),
+                  complex( 0,-1), complex(-1, 0), imagmax, realmax),
     ]
 
     smallest = transforms[0]
-    for transform in transforms:
-        if smaller(smallest, transform):
+    for transform in transforms[1:]:
+        if smaller(transform, smallest):
             smallest = transform
 
-    return apply_transform(transform)
+    return sorted(apply_transform(transform, realmax), key=complex_compare)
 
 
     #transforms = []
@@ -200,6 +249,7 @@ def nimber(ograil):
 
     #if ograil in untransformed_results:
         #return untransformed_results[ograil]
+
     if ograil in results:
         return results[ograil]
 
@@ -271,7 +321,7 @@ def nimber(ograil):
                     global_nimbers.add(
                         do_stuff(rail, curr_rail,
                                  (complex(row,col),
-                                  complex(row,col+2),
+                                  complex(row,col+1),
                                   complex(row,col+2))))
 
 
@@ -300,6 +350,32 @@ def do_stuff(rail, curr_rail, remove):
         optimal_moves[rail][local_nimber] = remove
     return local_nimber
 
+
+def write_to_human_readable(filename='monunrail.db'):
+    def prettypoint(c):
+        return f'{int(c.real)},{int(c.imag)}'
+    def readable(rail):
+
+        if isinstance(rail, complex):
+            return prettypoint(rail)
+
+
+        return ' '.join([f'{int(p.real)},{int(p.imag)}' for p in rail])
+
+    keys = results.keys()
+    sorted_keys = sorted(keys, key=cmp_to_key(rail_compare))
+    with open(filename, 'w') as f:
+        for key in sorted_keys:
+            if key in optimal_moves:
+                sorted_removes = sorted(optimal_moves[key])
+                pretty_removes = ' - '.join([
+                    f'{k}: {readable(optimal_moves[key][k])}'
+                    for k in sorted_removes])
+            else:
+                pretty_removes = ''
+            f.write(f'{readable(key)};\t{results[key]}\t' + pretty_removes + '\n')
+
+
 def pickleload(filename):
     if os.path.isfile(filename):
         with open(filename, 'rb') as f:
@@ -313,6 +389,210 @@ def generate_block(rows, cols):
     return tuple(complex(x,y) for x in range(rows)
               for y in range(cols))
 
+#if __name__ == '__main__':
+#    print(transform3([0+0j, 1+0j, 2+0j]))
+#    print(transform3([0+0j, 0+1j, 0+2j]))
+
+previous_games = [
+    (
+        0+0j,
+        0+1j,
+        0+2j,
+        0+3j,
+        1+0j,
+        1+1j,
+        1+2j,
+        1+3j,
+        2+2j,
+        2+3j,
+        2+4j,
+        3+2j,
+        3+3j,
+        3+4j
+    ),
+    (
+        0+0j,
+        0+1j,
+        0+2j,
+        0+3j,
+        0+4j,
+        0+5j,
+        1+0j,
+        1+1j,
+        1+2j,
+        1+5j,
+        2+2j,
+        2+3j,
+        2+4j,
+        2+5j,
+        3+0j,
+        3+1j,
+        3+2j,
+        3+3j,
+        3+4j,
+        3+5j,
+        4+0j,
+        4+1j,
+        4+2j,
+        4+3j,
+        4+4j,
+    ),
+    (
+        0+0j,
+        0+1j,
+        0+2j,
+        0+3j,
+        0+4j,
+        1+0j,
+        1+1j,
+        1+2j,
+        1+3j,
+        1+4j,
+        2+0j,
+        2+1j,
+        2+2j,
+        2+3j,
+        3+1j,
+        3+2j,
+        4+1j,
+        4+2j,
+    ),
+    (
+        0+0j,
+        0+1j,
+        0+2j,
+        0+3j,
+        0+4j,
+        1+0j,
+        1+1j,
+        1+2j,
+        1+3j,
+        1+4j,
+        1+5j,
+        2+4j,
+        2+5j,
+        3+4j,
+        3+5j,
+        4+4j,
+        4+5j,
+    ),
+    (
+        0+0j,
+        0+1j,
+        0+2j,
+        0+3j,
+        0+4j,
+        1+0j,
+        1+1j,
+        1+2j,
+        1+3j,
+        1+4j,
+        1+5j,
+        2+0j,
+        2+1j,
+        2+2j,
+        2+3j,
+        2+4j,
+        2+5j,
+        3+0j,
+        3+1j,
+        3+2j,
+        3+3j,
+    ),
+    (
+        0+0j,
+        0+1j,
+        0+2j,
+        0+3j,
+        1+0j,
+        1+1j,
+        1+2j,
+        1+3j,
+        1+4j,
+        2+0j,
+        2+1j,
+        2+2j,
+        2+3j,
+        2+4j,
+        3+1j,
+        3+2j,
+        3+3j,
+        4+2j,
+        4+3j,
+    ),
+    (
+        0+0j,
+        0+1j,
+        0+2j,
+        0+3j,
+        0+4j,
+        1+0j,
+        1+1j,
+        1+2j,
+        1+3j,
+        1+4j,
+        1+5j,
+        2+1j,
+        2+3j,
+        2+4j,
+        2+5j,
+        3+1j,
+        3+2j,
+        3+3j,
+        3+4j,
+        3+5j,
+    ),
+]
+
+
+def anki_write(res, maxlen=7):
+    k = sorted(res.keys(), key=cmp_to_key(rail_compare))
+    i = 0
+
+    for rail in k:
+        if len(rail) < 7:
+            continue
+        if len(rail) > maxlen:
+            break
+        i += 1
+        print(i)
+        xmax = 0
+        ymax = 0
+        for p in rail:
+            if p.real > xmax:
+                xmax = int(p.real)
+            if p.imag > ymax:
+                ymax = int(p.imag)
+
+        for x in range(xmax+1):
+            for y in range(ymax+1):
+                if complex(x, y) in rail:
+                    print('X', end='')
+                else:
+                    print(' ', end='')
+            print()
+        print(res[rail])
+        print()
+
+
+
+
+
+
+
+
+def signal_handler(sig, frame):
+    print('caught sigint, aborting and writing to file')
+    if dump_on_sigint == True:
+        pickledump('results.pickle', results)
+        pickledump('optimal_moves.pickle', optimal_moves)
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, signal_handler)
+
+dump_on_sigint = False
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ALL THE NIMBERS')
     parser.add_argument('rows', type=int)
@@ -320,6 +600,10 @@ if __name__ == '__main__':
     parser.add_argument('--printres', action='store_true')
     parser.add_argument('--noload', action='store_true')
     parser.add_argument('--nodump', action='store_true')
+    parser.add_argument('--export', action='store_true')
+    parser.add_argument('--generate-previous', action='store_true')
+    parser.add_argument('--print-anki', action='store_true')
+
     args = vars(parser.parse_args())
 
     if not args['noload']:
@@ -335,18 +619,39 @@ if __name__ == '__main__':
 
     #k = tuple(complex(x,y) for x in range(args['rows'])
     #          for y in range(args['cols']))
+
+    if not args['nodump']:
+        dump_on_sigint = True
     k = generate_block(args['rows'], args['cols'])
     print(nimber(k))
-    print(len(results))
     #print(len(untransformed_results))
+
+    if args['print_anki']:
+        anki_write(results)
+
+    if args['generate_previous']:
+        previous_games.sort(key=len)
+        for rail in previous_games:
+            print(f'len: {len(rail)}')
+            input()
+            print(nimber(rail))
+            print(rail in results)
+    print(len(results))
+
     if args['printres']:
         import pprint
         pprint.pprint(results)
 
+
     if not args['nodump']:
+        print('dumping...')
         pickledump('results.pickle', results)
         pickledump('optimal_moves.pickle', optimal_moves)
         #pickledump('untransformed_results.pickle', untransformed_results)
+
+    if args['export']:
+        print('exporting...')
+        write_to_human_readable()
 
 
 
