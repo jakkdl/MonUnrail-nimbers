@@ -39,7 +39,7 @@ A typical setup
 A finished track, to commence the unrailing.
 
 ## Solving unrailing
-I initially focused just on solving the second phase of the game, since that's the crucial part that decides the game. I later went on to solving phase one - but let's stick with the unrail for now.
+I initially focused on solving the second phase of the game, since that's the crucial part that decides the game. I later went on to solving phase one - but let's stick with the unrail for now.
 
 Let's start with some simple examples to get started. In the unrailing phase you can completely ignore what type of rail the tiles are - since the only requirement is that you remove tiles that are touching each other in a row or column. We can therefore simplify the board and just represent it as singular tiles.
 
@@ -79,7 +79,7 @@ Since the tiles need to be connected to remove, you can only remove one of these
 🟩⬜⬜🟩
 🟩🟩🟩🟩
 ```
-Here you're faced with two options. Take both tiles from one pair, in which the other player responds by finishing the other. Or you take one tile, leaving it as
+Here you're faced with two options. Take both tiles from one pair, in which the other player responds by finishing the other. Or you take one tile, leaving it as:
 ```
 🟩🟩🟩🟩
 🟩⬜🟩🟩
@@ -89,7 +89,7 @@ Here you're faced with two options. Take both tiles from one pair, in which the 
 ```
 where the other player mirrors your move and leaves you with the same state as the previous example.
 
-In fact all cases where there are two unconnected identical shapes are a win for the other player, since they can always mirror your move. This also works if you try to split the shape, but let's not get too ahead of ourselves here.
+In fact all cases where there are two unconnected identical shapes are a win for the other player, since they can always mirror your move.
 
 ```
 🟩🟩🟩🟩🟩
@@ -136,18 +136,22 @@ Now we're hitting the limits of what you can brute force figure out on your own,
 Any time it's your turn to move, you can either force your opponent into an unwinnable position - or you're in an unwinnable position. It's relatively straightforward to calculate if you're in an unwinnable position (given small/few shapes). For every shape we can calculate a nimber. The empty board is given nimber 0, and every subsequent shape is assigned **the lowest nimber that cannot be achieved by making a legal move**. If the value of the board in front of you is 0, you're in an unwinnable position. (If the board is empty, the opponent just took the last piece and won)
 
 So, a couple examples:
+##### Example 1
 ```
 🟩🟩🟩
 🟩⬜🟩
 🟩🟩🟩
 ```
 We can construct the empty board by removing the tile, which is nimber 0. That is the only move that can be made - so this shape is given the nimber 1.
+##### Example 2
 ```
 🟩🟩🟩🟩
 🟩⬜⬜🟩
 🟩🟩🟩🟩
 ```
-We can remove 1 tile, getting the above shape (1) or remove two, getting the empty board (0). It's therefore 2.
+We can remove 1 tile, getting the above shape (1) or remove two, getting the empty board (0). It's therefore 2.  
+
+##### Example 3
 ```
 🟩🟩🟩🟩
 🟩⬜⬜🟩
@@ -181,14 +185,14 @@ So we can go back to the previous shape, where if we remove the middle piece of 
 
 If it's your turn, and the nimber of the shapes in front of you *isn't* 0 - well than that means that you can make it 0! Even if you're doing nim-addition, my original statement that the nimber of a shape is the lowest value you cannot move it into, is true even for multiple shapes - so a non-0 value means you make move into a 0. There's unfortunately no simple way of finding a move (or *the* move if you're unlucky) to make it zero though (as far as I know...), you simple have to go through all the possible moves - calculate the nimber of the resulting shape, and if it's not 0 - keep going. If you don't find any moves ... then you might just be at a 0 yourself and have lost!
 
-This is in fact all that's needed, and once I'd realized this and verified it, I just sat down with a pen and paper and started calculating nimbers. This is what I, and my co-contestant e that helped me, came up with:
+This is in fact all that's needed, and once I'd realized this and verified it, I sat down with a pen and paper and started calculating nimbers. This is what I, and my co-contestant e that helped me, came up with:
 ![nimber_cheat_sheet](nimber_cheat_sheet.png)
 (Although there were a few errors in the original, which I've since fixed).
 There's some intriguing patterns in the shapes
 
 We can look at a larger example from the death match, where it was my turn to move:
 ![dm1](dm1.png)
-This is quite a large shape, and when playing I did not know what nimber it was (it's 2). But there's 5 different moves (three that split it, and two that give a shape that cannot be broken down into 0) that makes it a nimber 0. Given the above cheat-sheet can you find one? All of them?
+This is quite a large shape, and when playing I did not know what nimber it was (it's 2). There's 5 different moves (three that split it, and two that give a shape that cannot be broken down into 0) that makes it a nimber 0. Given the above cheat-sheet can you find one? All of them?
 <details><summary><b>Optimal moves</b></summary>
 Using coordinates where the upper left square is A1: D3+E3, F3+G3, F2+F3, F2+G2, G2+G3. Several spectators spotted the first one, while I did the second one. I found the last two with my solver.
 </details>
@@ -200,25 +204,25 @@ Since we can (in theory) solve the entire unrailing phase now, that means that y
 
 
 ## Interesting (non-)patterns
-1xN nimbers from 0 to 100
+1xN nimbers from 1 to 100 in rows of 34 (???)
 ```
-0,
-1,  2, 3, 4, 1,  6,  3,  2, 1,  6, 7,  4, 5, 8, 1, 10, 5, 4, 7,  6, 1, 2, 3,  6, 1,  4, 3,  2, 1, 8, 10,  4, 14, 16,
-1,  2, 3, 4, 1,  6,  3,  2, 1,  6, 7,  4, 5, 8, 1, 10, 5, 8, 7,  6, 1, 2, 3,  6, 1,  4, 3, 14, 1, 8, 10, 16, 14, 18,
-1, 10, 3, 4, 1,  6,  3,  2, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 14, 1, 2, 3,  6, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18,
-1, 10, 3, 4, 1,  6,  3,  2, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 14, 1, 2, 3,  6, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18,
-1, 10, 3, 8, 1,  6,  3,  2, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 14, 1, 4, 3, 20, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18,
-1, 10, 3, 8, 1, 13,  3,  2, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 16, 1, 4, 3, 21, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18,
-1, 10, 3, 8, 1, 13, 16, 24, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 16, 1, 4, 3, 21, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18
+1  2 3 4 5  6  7  8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34
+------------------------------------------------------------------------------------------------
+1  2 3 4 1  6  3  2 1  6  7  4  5  8  1 10  5  4  7  6  1  2  3  6  1  4  3  2  1  8 10  4 14 16
+1  2 3 4 1  6  3  2 1  6  7  4  5  8  1 10  5  8  7  6  1  2  3  6  1  4  3 14  1  8 10 16 14 18
+1 10 3 4 1  6  3  2 1 20  7 16  5  8  1 10  5  8  7 14  1  2  3  6  1 12  3 14  1  8 10 16 14 18
+1 10 3 8 1  6  3  2 1 20  7 16  5  8  1 10  5  8  7 14  1  4  3 20  1 12  3 14  1  8 10 16 14 18
+1 10 3 8 1 13  3  2 1 20  7 16  5  8  1 10  5  8  7 16  1  4  3 21  1 12  3 14  1  8 10 16 14 18
+1 10 3 8 1 13 16 24 1 20  7 16  5  8  1 10  5  8  7 16  1  4  3 21  1 12  3 14  1  8 10 16 14 18
 ```
-which seems to be semi-repeating every ... 29(??) nimbers
+which seems to be semi-repeating every ... 34(??) nimbers. Also note the reverse symmetry between `1 2 3 4 1 6 3 2 1 6 7 4 5` and `5 4 7 6 1 2 3 6 1 4 3 2 1` - although that seems to break down in later rows. Column 24 also shows that a number may change more than once.
 
 
 solid 2xN blocks
 ```
-0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
--------------------------------------------
-0, 2, 0, 2, 0, 2, 0, 6, 0, 2, 0, 2, 0, 2, 0
+0 1 2 3 4 5 6 7 8 9 10 11 12 13 14
+----------------------------------
+0 2 0 2 0 2 0 6 0 2  0  2  0  2  0
 ```
 Why the hell is 2x7=6??
 (conjecture: 2x2N blocks are always 0?)  
@@ -226,36 +230,38 @@ There's likely something here about rotational symmetry, maybe something like "N
 
 solid 3xN blocks
 ```
-0  1  2  3  4  5  6  7
-----------------------
-0, 3, 2, 1, 2, 3, 6, 4
+0 1 2 3 4 5 6 7
+---------------
+0 3 2 1 2 3 6 4
 ```
 solid 4xN blocks
 ```
-0  1  2  3  4  5
-----------------
-0, 4, 0, 2, 0, 7
+0 1 2 3 4 5
+-----------
+0 4 0 2 0 7
 ```
 solid 5xN blocks
 ```
-0  1  2  3  4  5
-----------------
-0, 1, 2, 3, 7, 1
+0 1 2 3 4 5
+-----------
+0 1 2 3 7 1
 ```
 
 ```
-    1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+    1 2 3 4 5 6 7 8 9
   _____________
-1 | 1 2 3 4 1 6 3 2 1  6  7  4  5  8  1 10
-2 | 2 0 2 0 2 0 6 0 2  0  2  0  2  0
+1 | 1 2 3 4 1 6 3 2 1
+2 | 2 0 2 0 2 0 6 0  
 3 | 3 2 1 2 3 6 4
 4 | 4 0 2 0 7
 5 | 1 2 3 7 1
 6 | 6 0 6
-7 | 3 6
+7 | 3 6 4
 8 | 2 0
+9 | 1
 ```
 
+(reading the diagonals)
 ```
 1
 2
