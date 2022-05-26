@@ -1,17 +1,19 @@
 """hardcoded previous games of particular interest"""
 previous_games = [
-        (
-            0+0j,
-            0+1j,
-            0+2j,
-            1+0j,
-            1+1j,
-            1+2j,
-            2+2j,
-            2+3j,
-            3+2j,
-            3+3j,
-            ),
+        tuple(n+k*1j for n in range(size) for k in range(3)) for size in range(1,8)
+        #tuple(0 + n*1j for n in range(size) ) for size in range(200,206)
+        #(
+        #    0+0j,
+        #    0+1j,
+        #    0+2j,
+        #    1+0j,
+        #    1+1j,
+        #    1+2j,
+        #    2+2j,
+        #    2+3j,
+        #    3+2j,
+        #    3+3j,
+        #    ),
 #        (
 #            0+0j,
 #            0+1j,

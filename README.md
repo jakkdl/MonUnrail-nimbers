@@ -45,63 +45,86 @@ Let's start with some simple examples to get started. In the unrailing phase you
 
 The player that removes the last tile wins, so any of the following boards are a win for the current player:
 ```
-X
+🟩🟩🟩
+🟩⬜🟩
+🟩🟩🟩
 ```
 ```
-XX
+🟩🟩🟩🟩
+🟩⬜⬜🟩
+🟩🟩🟩🟩
 ```
 ```
-X
-X
-X
+🟩🟩🟩
+🟩⬜🟩
+🟩⬜🟩
+🟩⬜🟩
+🟩🟩🟩
 ```
 
 Since they can easily remove all of the tiles in a single move.
 
 But the following boards are a win for the *other* player:
 ```
-X X
+🟩🟩🟩🟩🟩
+🟩⬜🟩⬜🟩
+🟩🟩🟩🟩🟩
 ```
 Since the tiles need to be connected to remove, you can only remove one of these tiles - in which the other player easily responds by taking the last one.
-```
-XX
 
-XX
+```
+🟩🟩🟩🟩
+🟩⬜⬜🟩
+🟩🟩🟩🟩
+🟩⬜⬜🟩
+🟩🟩🟩🟩
 ```
 Here you're faced with two options. Take both tiles from one pair, in which the other player responds by finishing the other. Or you take one tile, leaving it as
 ```
-X
-
-XX
+🟩🟩🟩🟩
+🟩⬜🟩🟩
+🟩🟩🟩🟩
+🟩⬜⬜🟩
+🟩🟩🟩🟩
 ```
 where the other player mirrors your move and leaves you with the same state as the previous example.
 
 In fact all cases where there are two unconnected identical shapes are a win for the other player, since they can always mirror your move. This also works if you try to split the shape, but let's not get too ahead of ourselves here.
 
 ```
-X X
+🟩🟩🟩🟩🟩
+🟩⬜🟩⬜🟩
+🟩🟩🟩🟩🟩
+🟩⬜🟩⬜🟩
+🟩🟩🟩🟩🟩
+```
+Here neither player has any choice, and they will take the final tile.
 
-X X
-```
-Pretty trivial case where the other player will win.
 
-
-Let's now get into a couple more funky shapes, if you're faced with these shapes - will you win? (Given that opponent plays optimally)
+Let's now get into a couple more funky shapes, if you're faced with these shapes - can you win? (Given that opponent plays optimally)
 ```
-XX
- XX
-```
-```
-XX
-XX
+🟩🟩🟩🟩🟩
+🟩⬜⬜🟩🟩
+🟩🟩⬜⬜🟩
+🟩🟩🟩🟩🟩
 ```
 ```
-XXXX
- X
+🟩🟩🟩🟩
+🟩⬜⬜🟩
+🟩⬜⬜🟩
+🟩🟩🟩🟩
 ```
 ```
-XXXX
-X X
+🟩🟩🟩🟩🟩🟩
+🟩⬜⬜⬜⬜🟩
+🟩🟩⬜🟩🟩🟩
+🟩🟩🟩🟩🟩🟩
+```
+```
+🟩🟩🟩🟩🟩🟩
+🟩⬜⬜⬜⬜🟩
+🟩⬜🟩⬜🟩🟩
+🟩🟩🟩🟩🟩🟩
 ```
 <details><summary><b>click to reveal answers</b></summary>
 <p>yes, no, yes, no</p>
@@ -114,16 +137,22 @@ Any time it's your turn to move, you can either force your opponent into an unwi
 
 So, a couple examples:
 ```
-X
+🟩🟩🟩
+🟩⬜🟩
+🟩🟩🟩
 ```
 We can construct the empty board by removing the tile, which is nimber 0. That is the only move that can be made - so this shape is given the nimber 1.
 ```
-XX
+🟩🟩🟩🟩
+🟩⬜⬜🟩
+🟩🟩🟩🟩
 ```
 We can remove 1 tile, getting the above shape (1) or remove two, getting the empty board (0). It's therefore 2.
 ```
-XX
-X
+🟩🟩🟩🟩
+🟩⬜⬜🟩
+🟩⬜🟩🟩
+🟩🟩🟩🟩
 ```
 If we remove one of the end pieces, we get the above tile (2). If we remove two pieces we get a single tile (1). But what happens if you remove the middle piece and get two 1x1's? From earlier we knew that's a losing position for the current player, which is your opponent, and unwinnable positions are given the nimber 0. So this must be a 3.
 
@@ -155,15 +184,88 @@ If it's your turn, and the nimber of the shapes in front of you *isn't* 0 - well
 This is in fact all that's needed, and once I'd realized this and verified it, I just sat down with a pen and paper and started calculating nimbers. This is what I, and my co-contestant e that helped me, came up with:
 ![nimber_cheat_sheet](nimber_cheat_sheet.png)
 (Although there were a few errors in the original, which I've since fixed).
+There's some intriguing patterns in the shapes
 
 We can look at a larger example from the death match, where it was my turn to move:
 ![dm1](dm1.png)
 This is quite a large shape, and when playing I did not know what nimber it was (it's 2). But there's 5 different moves (three that split it, and two that give a shape that cannot be broken down into 0) that makes it a nimber 0. Given the above cheat-sheet can you find one? All of them?
 <details><summary><b>Optimal moves</b></summary>
-D3+E3, F3+G3, F2+F3, F2+G2, G2+G3. Several spectators spotted the first one, while I did the second one. I found the last two with my solver.
+Using coordinates where the upper left square is A1: D3+E3, F3+G3, F2+F3, F2+G2, G2+G3. Several spectators spotted the first one, while I did the second one. I found the last two with my solver.
 </details>
 
 Theoretically it's possible to solve any size of shape, and I wrote a solver that can crunch shapes with more than 20 tiles before it starts taking quite a long time.
 
 ## Railing phase nimbers
 Since we can (in theory) solve the entire unrailing phase now, that means that you can start using this info towards the end of the railing phase - where if you know that finishing the given shape makes it a 0, you should do it. But the nimbers in the railing phase will depend on the specific tiles available and how they can be connected, and in practice it's not until you're at the end of the railing phase when the options are much more limited that it starts to become possible to calculate railing nimbers. The algorithm for doing so is much the same though.
+
+
+## Interesting (non-)patterns
+1xN nimbers from 0 to 100
+```
+0,
+1,  2, 3, 4, 1,  6,  3,  2, 1,  6, 7,  4, 5, 8, 1, 10, 5, 4, 7,  6, 1, 2, 3,  6, 1,  4, 3,  2, 1, 8, 10,  4, 14, 16,
+1,  2, 3, 4, 1,  6,  3,  2, 1,  6, 7,  4, 5, 8, 1, 10, 5, 8, 7,  6, 1, 2, 3,  6, 1,  4, 3, 14, 1, 8, 10, 16, 14, 18,
+1, 10, 3, 4, 1,  6,  3,  2, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 14, 1, 2, 3,  6, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18,
+1, 10, 3, 4, 1,  6,  3,  2, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 14, 1, 2, 3,  6, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18,
+1, 10, 3, 8, 1,  6,  3,  2, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 14, 1, 4, 3, 20, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18,
+1, 10, 3, 8, 1, 13,  3,  2, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 16, 1, 4, 3, 21, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18,
+1, 10, 3, 8, 1, 13, 16, 24, 1, 20, 7, 16, 5, 8, 1, 10, 5, 8, 7, 16, 1, 4, 3, 21, 1, 12, 3, 14, 1, 8, 10, 16, 14, 18
+```
+which seems to be semi-repeating every ... 29(??) nimbers
+
+
+solid 2xN blocks
+```
+0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
+-------------------------------------------
+0, 2, 0, 2, 0, 2, 0, 6, 0, 2, 0, 2, 0, 2, 0
+```
+Why the hell is 2x7=6??
+(conjecture: 2x2N blocks are always 0?)  
+There's likely something here about rotational symmetry, maybe something like "Nimber=0 if there's two-way rotational symmetry and [...]" since you can always mirror your opponent's moves rotated 180 degrees - but it needs an additional clause to rule out 2x(N-1) (at least)
+
+solid 3xN blocks
+```
+0  1  2  3  4  5  6  7
+----------------------
+0, 3, 2, 1, 2, 3, 6, 4
+```
+solid 4xN blocks
+```
+0  1  2  3  4  5
+----------------
+0, 4, 0, 2, 0, 7
+```
+solid 5xN blocks
+```
+0  1  2  3  4  5
+----------------
+0, 1, 2, 3, 7, 1
+```
+
+```
+    1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+  _____________
+1 | 1 2 3 4 1 6 3 2 1  6  7  4  5  8  1 10
+2 | 2 0 2 0 2 0 6 0 2  0  2  0  2  0
+3 | 3 2 1 2 3 6 4
+4 | 4 0 2 0 7
+5 | 1 2 3 7 1
+6 | 6 0 6
+7 | 3 6
+8 | 2 0
+```
+
+```
+1
+2
+3 0
+4 2
+1 0 1
+6 2 2
+3 0 3 0
+2 6 6 7
+1 0 4 ? 1
+```
+(stronger conjecture: 2Nx2N blocks are always 0) ... maybe: A rotationally symmetric rail in a 2Nx2N bounding box is always 0?  
+(2N-1)x(2N-1) blocks with the middle tile taken out are also 0 though, which the above doesn't cover.

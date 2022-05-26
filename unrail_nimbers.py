@@ -4,7 +4,6 @@
 import argparse
 import os
 import pickle
-import pprint
 from functools import cmp_to_key
 import signal
 import sys
@@ -18,7 +17,7 @@ Rail = tuple[complex, ...]
 Move = Union[tuple[complex], tuple[complex,complex], tuple[complex, complex, complex]]
 Nimber = int
 Results = dict[Rail, Nimber]
-OptimalMoves = dict[Rail, dict[Nimber, Move]]
+OptimalMoves = Optional[dict[Rail, dict[Nimber, Move]]]
 
 
 def complex_to_tuple(number: complex) -> tuple[int, int]:
@@ -268,10 +267,11 @@ def nimber(ograil: Rail, results: Results, optimal_moves: OptimalMoves,
         if all_zeros and local_nimber == 0:
             print(remove)
 
-        if rail not in optimal_moves:
-            optimal_moves[rail] = {local_nimber: remove}
-        elif local_nimber not in optimal_moves[rail]:
-            optimal_moves[rail][local_nimber] = remove
+        if optimal_moves is not None:
+            if rail not in optimal_moves:
+                optimal_moves[rail] = {local_nimber: remove}
+            elif local_nimber not in optimal_moves[rail]:
+                optimal_moves[rail][local_nimber] = remove
 
         return local_nimber
 
@@ -372,7 +372,7 @@ def write_to_human_readable(results: Results,
     sorted_keys = sorted(keys, key=cmp_to_key(rail_compare))
     with open(filename, 'w', encoding='utf-8') as file:
         for key in sorted_keys:
-            if key in optimal_moves:
+            if optimal_moves and key in optimal_moves:
                 sorted_removes = sorted(optimal_moves[key])
                 pretty_removes = ' - '.join([
                     f'{k}: {readable(optimal_moves[key][k])}'
@@ -472,6 +472,7 @@ def main() -> None:
     parser.add_argument('--noload', action='store_true')
     parser.add_argument('--nodump', action='store_true')
     parser.add_argument('--export', action='store_true')
+    parser.add_argument('--optimal-moves', action='store_true')
     parser.add_argument('--generate-previous', action='store_true')
     parser.add_argument('--print-anki', action='store_true')
 
@@ -493,6 +494,10 @@ def main() -> None:
 
     results_len = len(results)
 
+    if not args['optimal_moves']:
+        optimal_moves = None
+
+
     k = generate_block(args['rows'], args['cols'])
     print(nimber(k, results, optimal_moves))
 
@@ -502,12 +507,14 @@ def main() -> None:
     if args['generate_previous']:
         previous_games.sort(key=len)
         for rail in previous_games:
-            print(f'len: {len(rail)}')
-            print(nimber(rail, results, optimal_moves, all_zeros=True))
+            #print(f'len: {len(rail)}')
+            print(nimber(rail, results, optimal_moves), end=', ', flush=True)
+        print()
     print(len(results))
 
     if args['printres']:
-        pprint.pprint(results)
+        #pprint.pprint(results)
+        print(', '.join(map(str, results.values())))
 
     if args['export']:
         print('exporting...')
@@ -520,7 +527,8 @@ def main() -> None:
         return
     print('dumping...')
     pickledump('results.pickle', results)
-    pickledump('optimal_moves.pickle', optimal_moves)
+    if optimal_moves is not None:
+        pickledump('optimal_moves.pickle', optimal_moves)
 
 
 if __name__ == '__main__':
